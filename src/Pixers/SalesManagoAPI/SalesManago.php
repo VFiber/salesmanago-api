@@ -32,7 +32,7 @@ class SalesManago
     }
 
     /**
-     * @return ContactService
+     * @return Service\ContactService
      */
     public function getContactService()
     {
@@ -40,7 +40,7 @@ class SalesManago
     }
 
     /**
-     * @return CouponService
+     * @return Service\CouponService
      */
     public function getCouponService()
     {
@@ -48,7 +48,7 @@ class SalesManago
     }
 
     /**
-     * @return EmailService
+     * @return Service\EmailService
      */
     public function getEmailService()
     {
@@ -56,7 +56,7 @@ class SalesManago
     }
 
     /**
-     * @return EventService
+     * @return Service\EventService
      */
     public function getEventService()
     {
@@ -64,7 +64,7 @@ class SalesManago
     }
 
     /**
-     * @return MailingListService
+     * @return Service\MailingListService
      */
     public function getMailingListService()
     {
@@ -72,7 +72,7 @@ class SalesManago
     }
 
     /**
-     * @return PhoneListService
+     * @return Service\PhoneListService
      */
     public function getPhoneListService()
     {
@@ -80,7 +80,7 @@ class SalesManago
     }
 
     /**
-     * @return RuleService
+     * @return Service\RuleService
      */
     public function getRuleService()
     {
@@ -88,7 +88,7 @@ class SalesManago
     }
 
     /**
-     * @return SystemService
+     * @return Service\SystemService
      */
     public function getSystemService()
     {
@@ -96,7 +96,7 @@ class SalesManago
     }
 
     /**
-     * @return TagService
+     * @return Service\TagService
      */
     public function getTagService()
     {
@@ -104,7 +104,7 @@ class SalesManago
     }
 
     /**
-     * @return TaskService
+     * @return Service\TaskService
      */
     public function getTaskService()
     {
