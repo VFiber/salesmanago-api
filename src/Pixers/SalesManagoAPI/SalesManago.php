@@ -2,7 +2,6 @@
 
 namespace Pixers\SalesManagoAPI;
 
-use Pixers\SalesManagoAPI\Client;
 use Pixers\SalesManagoAPI\Service;
 
 /**
@@ -23,9 +22,17 @@ class SalesManago
     protected $services;
 
     /**
-     * @param Client $client
+     * @var string Contact owner e-mail address, used where the API requires owner to be specified (e.g. ContactService)
+     * contact management.
      */
-    public function __construct(Client $client)
+    protected $contactOwnerEmail = '';
+
+    /**
+     * @param Client $client
+     * @param $contactOwnerEmail string Sets the contact owner e-mail address, used where the API requires owner to be specified (e.g. ContactService)
+     * @see Service\OwnerRequiredAbstractService
+     */
+    public function __construct(Client $client, $contactOwnerEmail = '')
     {
         $this->client = $client;
         $this->services = [];
@@ -119,6 +126,9 @@ class SalesManago
     {
         if (!isset($this->services[$className])) {
             $this->services[$className] = new $className($this->client);
+            if ($this->services[$className] instanceof Service\OwnerRequiredServiceInterface && !empty($this->contactOwnerEmail)) {
+                $this->services[$className]->setOwner($this->contactOwnerEmail);
+            }
         }
 
         return $this->services[$className];
