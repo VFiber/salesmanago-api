@@ -2,6 +2,9 @@
 
 namespace Pixers\SalesManagoAPI\Service;
 
+use Pixers\SalesManagoAPI\Entitiy\DetailedContact;
+use Pixers\SalesManagoAPI\Exception\InvalidArgumentException;
+
 /**
  * @author Sylwester Łuczak <sylwester.luczak@pixers.pl>
  */
@@ -13,8 +16,14 @@ class ContactService extends OwnerRequiredAbstractService
      * @param  array $data Contact data
      * @return array
      */
-    public function create(array $data)
+    public function create($data)
     {
+
+        if ($data instanceof DetailedContact)
+        {
+            throw new InvalidArgumentException("Given parameter is not a valid contact array or Contact instance.",$data);
+        }
+
         $data['owner'] = $this->getOwner();
 
         return $this->client->doPost('contact/insert', $data);
@@ -59,15 +68,17 @@ class ContactService extends OwnerRequiredAbstractService
      * Deleting contact.
      *
      * @param  string $email Contact e-mail address
-     * @param  array $data Client data
+     * @param  array $permanently Is it a permanent delete
+     *
      * @return array
      */
-    public function delete($email, array $data)
+    public function delete($email, $permanently = true)
     {
-        $data = self::mergeData($data, [
+        $data = [
             'owner' => $this->getOwner(),
             'email' => $email,
-        ]);
+            'permanently' => $permanently
+        ];
 
         return $this->client->doPost('contact/delete', $data);
     }

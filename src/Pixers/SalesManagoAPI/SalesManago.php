@@ -36,6 +36,7 @@ class SalesManago
     {
         $this->client = $client;
         $this->services = [];
+        $this->contactOwnerEmail = $contactOwnerEmail;
     }
 
     /**
