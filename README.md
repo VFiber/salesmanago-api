@@ -3,46 +3,19 @@
 Implementation of SalesManago API version `1.45`.
 For more details about the API go to [SalesManago site].
 
-## Note
+## Installation
 
-This is a reworked version of pixers/salesmanago-api, focusing on easy usability and it is partialy 
-compatible with the original code.
+Install the package through composer.  
+For the latest stable version use:
 
-The main goal was to eliminate the need to know the specific API related fields to create an API call.
-E.g. instead of:
-
-```php
-<?php
-
-// Then - initialize SalesManago Services Locator
-$salesManago = new SalesManago($client);
-
-// Now you can use specific services
-$contactResponse = $salesManago->getContactService()->delete($owner, $email, $data);
-
-$eventResponse = $salesManago->getEventService()->delete($owner, $eventId);
 ```
-It became
+php composer.phar require pixers/salesmanago-api:1.1.1
+```
 
-```php
-<?php
+For the latest version use:
 
-// Then - initialize SalesManago Services Locator
-$salesManago = new SalesManago($client);
-
-// Now you can use specific services
-$contactResponse = $salesManago->getContactService()->setOwner($contactOwner)->delete($email, $permanently);
-$eventResponse = $salesManago->getEventService()->setOwner($contactOwner)->delete($eventId);
-
-//or in a less intuitive but easier way:
-
-$salesManago = new SalesManago($client, $contactOwner);
-
-// Now you can use specific services
-$contactResponse = $salesManago->getContactService()->delete($email, $permanently);
-//changing owner on-the-fly
-$eventResponse = $salesManago->getEventService()->setOwner($otherContactOwner)->delete($eventId);
-
+```
+php composer.phar require pixers/salesmanago-api:dev-master
 ```
 
 ## Usage
@@ -50,15 +23,15 @@ $eventResponse = $salesManago->getEventService()->setOwner($otherContactOwner)->
 API Client is divided into several sub-services, responsible for particular resources (e.g. Contacts, Events):
 
 * [ContactService](src/Pixers/SalesManagoAPI/Service/ContactService.php)
-    * ContactService::create($data)
-    * ContactService::update($email, $data)
-    * ContactService::upsert($email, $data)
-    * ContactService::delete($email, $data)
-    * ContactService::has($email)
-    * ContactService::useCoupon($coupon)
-    * ContactService::listByEmails($data)
-    * ContactService::listByIds($data)
-    * ContactService::listRecentlyModified($data)
+    * ContactService::create($owner, $data)
+    * ContactService::update($owner, $email, $data)
+    * ContactService::upsert($owner, $email, $data)
+    * ContactService::delete($owner, $email, $data)
+    * ContactService::has($owner, $email)
+    * ContactService::useCoupon($email, $coupon)
+    * ContactService::listByEmails($owner, $data)
+    * ContactService::listByIds($owner, $data)
+    * ContactService::listRecentlyModified($owner, $data)
     * ContactService::listRecentActivity($data)
 * [CouponService](src/Pixers/SalesManagoAPI/Service/CouponService.php)
     * CouponService::create($owner, $email, $data)
