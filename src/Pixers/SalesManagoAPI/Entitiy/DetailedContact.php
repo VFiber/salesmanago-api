@@ -38,6 +38,11 @@ class DetailedContact extends Contact implements \ArrayAccess
     private $removeTags = [];
 
     /**
+     * @var string
+     */
+    public $newEmail;
+
+    /**
      * @var array Extra properties (thats not handled SalesManago by default, e.g: nickname, sex, etc.)
      */
     public $properties;
@@ -127,14 +132,35 @@ class DetailedContact extends Contact implements \ArrayAccess
     public $address;
 
     /**
-     * @var bool
+     * @var bool Force opt-out user (not set by default)
+     */
+    public $forceOptOut;
+
+    /**
+     * @var bool Force opt-in user (e.g. for upsert or for a new subscription event)
+     */
+    public $forceOptIn;
+
+    /**
+     * @var bool User opted out on phone
+     */
+    public $forcePhoneOptOut;
+
+    /**
+     * @var bool User opted in on phone
+     */
+    public $forcePhoneOptIn;
+
+    /**
+     * @var bool User current subscription state according to SalesManago
      */
     public $optedOut;
 
     /**
-     * @var bool
+     * @var bool User current "subscription" state according to SalesManago
      */
     public $optedOutPhone;
+
     /**
      * @var
      */
@@ -156,57 +182,76 @@ class DetailedContact extends Contact implements \ArrayAccess
 
     /**
      * @param array $requestArray
+     *
      * @return DetailedContact
      */
     public static function createFromRequest(array $requestArray)
     {
         $t = new DetailedContact();
 
-        if (!empty($requestArray)) {
-            if (!empty($requestArray['contact'])) {
-                foreach ($requestArray['contact'] as $field => $value) {
-                    if (property_exists($t, $field)) {
-                        if (is_string($value)) {
+        if (!empty($requestArray))
+        {
+            if (!empty($requestArray['contact']))
+            {
+                foreach ($requestArray['contact'] as $field => $value)
+                {
+                    if (property_exists($t, $field))
+                    {
+                        if (is_string($value))
+                        {
                             $t[$field] = $value;
-                        } elseif (is_null($value)) {
+                        }
+                        elseif (is_null($value))
+                        {
                             $t[$field] = '';
-                        } elseif (is_array($value) && $field == 'address') {
+                        }
+                        elseif (is_array($value) && $field == 'address')
+                        {
                             $t->address = new Address($value);
                         }
                     }
                 }
             }
-            if (!empty($requestArray['tags'])) {
-                foreach ($requestArray['tags'] as $tag) {
+            if (!empty($requestArray['tags']))
+            {
+                foreach ($requestArray['tags'] as $tag)
+                {
                     $t->addTag($tag);
                 }
             }
-            if (!empty($requestArray['removeTags'])) {
-                foreach ($requestArray['removeTags'] as $tag) {
-                    $t->removeTag($tag);
-                }
+            if (!empty($requestArray['removeTags']))
+            {
+                $t->removeTags($requestArray['removeTags']);
             }
-            if (!empty($requestArray['properties'])) {
-                foreach ($requestArray['properties'] as $name => $property) {
+            if (!empty($requestArray['properties']))
+            {
+                foreach ($requestArray['properties'] as $name => $property)
+                {
                     $t->setProperty($name, $property);
                 }
             }
 
-            foreach ($requestArray as $property => $value) {
+            foreach ($requestArray as $property => $value)
+            {
                 //complex types are handled above
-                if (is_array($value) || is_object($value)) {
+                if (is_array($value) || is_object($value))
+                {
                     continue;
                 }
 
-                switch ($property) {
+                switch ($property)
+                {
                     case 'birthday':
                         $t->setBirthday(\DateTime::createFromFormat('Ymd', $value));
                         continue 2;
                         break;
                 }
-                try {
+                try
+                {
                     $t[$property] = $value;
-                } catch (InvalidArgumentException $e) {
+                }
+                catch (InvalidArgumentException $e)
+                {
                     var_dump($property, $value);
                 }
             }
@@ -222,7 +267,8 @@ class DetailedContact extends Contact implements \ArrayAccess
     {
         $t = new DetailedContact();
 
-        foreach ($responseContact as $property => $value) {
+        foreach ($responseContact as $property => $value)
+        {
             $t[$property] = $value;
         }
 
@@ -232,32 +278,48 @@ class DetailedContact extends Contact implements \ArrayAccess
     public function getInRequestFormat()
     {
         $contactFields = ['email', 'name', 'phone', 'fax', 'state', 'company', 'externalId'];
+        $simpleFields = ["newEmail", "forceOptIn", "forceOptOut", "forcePhoneOptIn", "forcePhoneOptOut"];
 
         $requestFormat = [];
-        foreach ($contactFields as $fieldProp) {
+        foreach ($contactFields as $fieldProp)
+        {
             $fieldVal = $this[$fieldProp];
-            if (!is_null($fieldVal)) {
+            if (!is_null($fieldVal))
+            {
                 $requestFormat['contact'][$fieldProp] = $fieldVal;
             }
         }
 
-        if (!empty($this->address)) {
+        if (!empty($this->address))
+        {
             $requestFormat['contact']['address'] = $this->address->getInRequestFormat();
         }
 
-        if (!empty($this->tags)) {
+        if (!empty($this->tags))
+        {
             $requestFormat['tags'] = array_keys($this->tags);
         }
 
-        if (!empty($this->birthdayDay)) {
+        if (!empty($this->birthdayDay))
+        {
             $requestFormat['birthday'] = $this->birthdayYear . $this->birthdayMonth . $this->birthdayDay;
         }
 
-        if (!empty($this->removeTags)) {
+        if (!empty($this->removeTags))
+        {
             $requestFormat['removeTags'] = array_values($this->removeTags);
         }
-        if (!empty($this->properties)) {
+        if (!empty($this->properties))
+        {
             $requestFormat['properties'] = $this->properties;
+        }
+
+        foreach ($simpleFields as $field)
+        {
+            if ($this[$field] != null)
+            {
+                $requestFormat[$field] = $this[$field];
+            }
         }
 
         return $requestFormat;
@@ -265,7 +327,8 @@ class DetailedContact extends Contact implements \ArrayAccess
 
     public function setProperty($propertyName, $propertyValue)
     {
-        if (!is_numeric($propertyValue) && !is_string($propertyValue)) {
+        if (!is_numeric($propertyValue) && !is_string($propertyValue))
+        {
             throw new InvalidArgumentException("Property named " . $propertyName . " is not a simple value, cannot be added to contact properties", $propertyValue);
         }
 
@@ -276,7 +339,8 @@ class DetailedContact extends Contact implements \ArrayAccess
 
     public function getProperty($propertyName)
     {
-        if (empty($this->properties[$propertyName])) {
+        if (empty($this->properties[$propertyName]))
+        {
             return null;
         }
 
@@ -285,6 +349,7 @@ class DetailedContact extends Contact implements \ArrayAccess
 
     /**
      * @param $tag string|array|\stdClass short for Contact::addTag(Tag("TagAsString"));
+     *
      * @return $this
      * @throws InvalidArgumentException
      *
@@ -295,22 +360,32 @@ class DetailedContact extends Contact implements \ArrayAccess
         $isTagInstance = $tag instanceof Tag;
         $isStdObject = $tag instanceof \stdClass;
 
-        if (is_null($tag)) {
+        if (is_null($tag))
+        {
             throw new InvalidArgumentException("Invalid tag type: ", gettype($tag));
         }
 
-        if ($isTagInstance) {
+        if ($isTagInstance)
+        {
             $tagName = ($isTagInstance ? $tag->tag : $tag);
-        } elseif ($isStdObject) {
+        }
+        elseif ($isStdObject)
+        {
             $tagName = $tag->tag;
-        } else {
+        }
+        else
+        {
             $tagName = $tag;
         }
 
-        if (!array_key_exists($tagName, $this->tags)) {
-            if ($isTagInstance) {
+        if (!array_key_exists($tagName, $this->tags))
+        {
+            if ($isTagInstance)
+            {
                 $this->tags[$tagName] = $tag;
-            } else {
+            }
+            else
+            {
                 $this->tags[$tagName] = new Tag($tag);
             }
         }
@@ -328,6 +403,34 @@ class DetailedContact extends Contact implements \ArrayAccess
         $this->removeTags[$tag] = $tag;
     }
 
+    public function hasTag($tag)
+    {
+        $isTagInstance = $tag instanceof Tag;
+        $isStdObject = $tag instanceof \stdClass;
+
+        if ($isTagInstance || $isStdObject)
+        {
+            $tagName = $tag->tag;
+        }
+        else
+        {
+            $tagName = $tag;
+        }
+
+        return array_key_exists($tagName, $this->tags);
+    }
+
+    /**
+     * @param string[] $tags
+     */
+    public function removeTags(array $tags)
+    {
+        foreach ($tags as $tag)
+        {
+            $this->removeTags[$tag] = $tag;
+        }
+    }
+
     public function offsetExists($offset)
     {
         return property_exists($this, $offset);
@@ -340,7 +443,8 @@ class DetailedContact extends Contact implements \ArrayAccess
 
     public function offsetSet($offset, $value)
     {
-        if (is_null($offset)) {
+        if (is_null($offset))
+        {
             throw new \InvalidArgumentException("No offset was given, " . __CLASS__ . " cannot be used as an incremental numeric array");
         }
 
@@ -349,16 +453,19 @@ class DetailedContact extends Contact implements \ArrayAccess
             'contactTags'
         ];
 
-        if (!property_exists($this, $offset) && !in_array($offset, $specialTags)) {
+        if (!property_exists($this, $offset) && !in_array($offset, $specialTags))
+        {
             throw new \InvalidArgumentException("Unknown contact property: '" . $offset . "' in " . __CLASS__);
         }
 
-        switch ($offset) {
+        switch ($offset)
+        {
             case 'address':
                 $this->address = new Address($value);
                 break;
             case 'contactTags':
-                foreach ($value as $tag) {
+                foreach ($value as $tag)
+                {
                     $this->addTag($tag);
                 }
                 break;
@@ -375,7 +482,8 @@ class DetailedContact extends Contact implements \ArrayAccess
 
     public function offsetUnset($offset)
     {
-        if (property_exists($this, $offset)) {
+        if (property_exists($this, $offset))
+        {
             unset($this->{$offset});
         }
     }
@@ -387,5 +495,21 @@ class DetailedContact extends Contact implements \ArrayAccess
         $this->birthdayMonth = $birthday->format('m');
     }
 
+    /**
+     * @return string
+     */
+    public function getNewEmail()
+    {
+        return $this->newEmail;
 
+    }
+
+    /**
+     * @param string $newEmail
+     */
+    public function setNewEmail($newEmail)
+    {
+        $this->newEmail = $newEmail;
+        return $this;
+    }
 }
