@@ -5,6 +5,7 @@ namespace Pixers\SalesManagoAPI\Service;
 use Pixers\SalesManagoAPI\Entitiy\Contact;
 use Pixers\SalesManagoAPI\Entitiy\DetailedContact;
 use Pixers\SalesManagoAPI\Entitiy\APIResponse;
+use Pixers\SalesManagoAPI\Exception\FailedOperationException;
 use Pixers\SalesManagoAPI\Exception\InvalidArgumentException;
 use Pixers\SalesManagoAPI\Exception\InvalidResponseException;
 
@@ -16,58 +17,68 @@ class ContactService extends OwnerRequiredAbstractService
     /**
      * Adding a new contact.
      *
-     * @param  array $data Contact data
+     * @param  Contact|DetailedContact $contactData Contact data
      *
-     * @return \stdClass
+     * @throws FailedOperationException
+     *
+     * @return string contactId SalesManago contact id
      */
-    public function create($data)
+    public function create(Contact &$contactData)
     {
+        $request = $contactData->getInRequestFormat();
 
-        if ($data instanceof DetailedContact)
-        {
-            throw new InvalidArgumentException("Given parameter is not a valid contact array or Contact instance.", $data);
-        }
+        $request['owner'] = $this->getOwner();
 
-        $data['owner'] = $this->getOwner();
+        $response = $this->client->doPost('contact/insert', $request);
 
-        return $this->client->doPost('contact/insert', $data);
+        $apiResponse = APIResponse::createFromRawResponse($response, ['contactId']);
+
+        $contactData->id = $apiResponse->getPayLoad(['contactId']);
+
+        return $contactData->id;
     }
 
     /**
      * Update contact data.
      *
-     * @param  string $email Contact e-mail address
-     * @param  array  $data  Contact data
+     * @param  Contact|DetailedContact $contactData Contact data
      *
-     * @return \stdClass
+     * @return string contactId SalesManago contact id
      */
-    public function update($email, array $data)
+    public function update(Contact &$contactData)
     {
-        $data = self::mergeData($data, [
-            'owner' => $this->getOwner(),
-            'email' => $email,
-        ]);
+        $request = $contactData->getInRequestFormat();
+        $request['owner'] = $this->getOwner();
 
-        return $this->client->doPost('contact/update', $data);
+        $response = $this->client->doPost('contact/update', $request);
+
+        $apiResponse = APIResponse::createFromRawResponse($response, ['contactId']);
+
+        $contactData->id = $apiResponse->getPayLoad(['contactId']);
+
+        return $contactData->id;
     }
 
     /**
      * Deleting contact.
      *
-     * @param  string $email Contact e-mail address
-     * @param  array  $data  Contact data
+     * @param  Contact|DetailedContact $contactData Contact data
      *
-     * @return \stdClass
+     * @return string contactId SalesManago contact id
      */
-    public function upsert($email, array $data)
+    public function upsert(Contact &$contactData)
     {
-        $data = self::mergeData($data, [
-            'owner' => $this->getOwner(),
-            'contact' => [
-                'email' => $email
-            ]
-        ]);
-        return $this->client->doPost('contact/upsert', $data);
+        $request = $contactData->getInRequestFormat();
+
+        $request['owner'] = $this->getOwner();
+
+        $response = $this->client->doPost('contact/upsert', $request);
+
+        $apiResponse = APIResponse::createFromRawResponse($response, ['contactId']);
+
+        $contactData->id = $apiResponse->getPayLoad(['contactId']);
+
+        return $contactData->id;
     }
 
     /**
@@ -75,9 +86,12 @@ class ContactService extends OwnerRequiredAbstractService
      *
      * @param Contact[] $contacts Array of Contacts or DetailedContact. should be $contacts[$contact->email] = $contact if you want to use the return values.
      *
+     * @throws InvalidArgumentException
+     * @throws InvalidResponseException
+     *
      * @see Contact
      * @see DetailedContact
-     * @return array
+     * @return array contactIds in associative array format -> ['email' => 'contactId']
      */
     public function batchUpsert(array &$contacts)
     {
@@ -101,9 +115,9 @@ class ContactService extends OwnerRequiredAbstractService
         }
 
         //email addresses may contain chars that is not allowed in members
-        $this->client->setResponseInAssocArray(false);
-        $apiResponse = APIResponse::createFromRawResponse($this->client->doPost('contact/batchupsert', $requestData), ['contactIds']);
         $this->client->setResponseInAssocArray(true);
+        $apiResponse = APIResponse::createFromRawResponse($this->client->doPost('contact/batchupsert', $requestData), ['contactIds']);
+        $this->client->setResponseInAssocArray(false);
 
         if (!$canProcessReturnValues)
         {
@@ -127,7 +141,7 @@ class ContactService extends OwnerRequiredAbstractService
      * Deleting contact.
      *
      * @param  string|Contact $email       Contact e-mail address
-     * @param  array          $permanently Is it a permanent delete
+     * @param  bool           $permanently Is it a permanent delete
      *
      * @return \stdClass
      */
@@ -173,7 +187,7 @@ class ContactService extends OwnerRequiredAbstractService
      * @param  string|Contact $email  Contact email address
      * @param  string         $coupon Coupon
      *
-     * @return array
+     * @return bool
      */
     public function useCoupon($email, $coupon)
     {
@@ -182,43 +196,72 @@ class ContactService extends OwnerRequiredAbstractService
             $email = $email->email;
         }
 
-        return $this->client->doPost('contact/useContactCoupon', [
+        $response = $this->client->doPost('contact/useContactCoupon', [
             'email' => $email,
             'coupon' => $coupon,
         ]);
+
+        try
+        {
+            APIResponse::createFromRawResponse($response);
+        }
+        catch (FailedOperationException $e)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * Import contacts list by the e-mail addresses.
-     *
-     * @param  string[]|Contact[] $data Request data
+     * @param array $emails
      *
      * @return array
      */
     public function listByEmails(array $emails)
     {
-        $requestEmails = [];
-        foreach ($emails as $contact)
+        return $this->listContacts($emails);
+    }
+
+    /**
+     * Import contacts list by the e-mail addresses.
+     *
+     * @param  string[]|Contact[] $contacts Request data, strings has to be e-mail adressess
+     *
+     * @return array
+     */
+    public function listContacts(array $contacts)
+    {
+
+        $request['owner'] = $this->getOwner();
+
+        foreach ($contacts as $contact)
         {
             if ($contact instanceof Contact)
             {
-                $requestEmails[] = $contact->email;
+                if (empty($contact->id))
+                {
+                    $request['email'][] = $contact->email;
+                }
+                else
+                {
+                    $request['contactId'][] = $contact->id;
+                }
             }
             else
             {
-                $requestEmails[] = $contact;
+                $request['email'][] = $contact;
             }
         }
-        return $this->client->doPost('contact/list', [
-            'owner' => $this->getOwner(),
-            'email' => $emails
-        ]);
+
+        //FIXME: return values parsed and returned as Contact[]
+        return $this->client->doPost('contact/list', $request);
     }
 
     /**
      * Import contacts list by the SalesManago IDS.
      *
-     * @param  int[]|Contact[] $data Request data
+     * @param  string[]|Contact[] $contactList Request data
      *
      * @return array
      */
@@ -277,7 +320,7 @@ class ContactService extends OwnerRequiredAbstractService
         {
             $requestData['ipDetails'] = true;
         }
-
+        //FIXME: return values parsed and returned as Contact[]
         return $this->client->doPost('contact/modifiedContacts', $requestData);
     }
 

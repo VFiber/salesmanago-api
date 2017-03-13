@@ -8,6 +8,7 @@
 
 namespace Pixers\SalesManagoAPI\Entitiy;
 
+use Pixers\SalesManagoAPI\Exception\FailedOperationException;
 use Pixers\SalesManagoAPI\Exception\InvalidResponseException;
 
 /**
@@ -32,8 +33,12 @@ class APIResponse
     /**
      * Creates and makes few validations on a response got from SM raw response.
      *
-     * @param          $data
-     * @param string[] $requiredPayloadFields e.g.: ["contactIds","otherRequiredField"]
+     * @param array|\stdClass $data
+     * @param string[]        $requiredPayloadFields e.g.: ["contactIds","otherRequiredField"]
+     *
+     * @return APIResponse
+     * @throws FailedOperationException
+     * @throws InvalidResponseException
      */
     public static function createFromRawResponse($data, array $requiredPayloadFields = [])
     {
@@ -58,6 +63,11 @@ class APIResponse
         if (!isset($t->responseObject['success']) || !isset($t->responseObject['message']))
         {
             throw new InvalidResponseException("The given response data cannot be interpreted as valid SalesManago API response: Does not contain success and message fields.");
+        }
+
+        if (!$t->responseObject['success'])
+        {
+            throw new FailedOperationException("API Response: " . implode(" ", $t->responseObject['message']));
         }
 
         if (!empty($requiredPayloadFields))

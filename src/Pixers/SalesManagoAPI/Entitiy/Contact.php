@@ -26,7 +26,7 @@ class Contact implements \ArrayAccess
     public $email;
 
     /**
-     * @var string contactId E.g.: d51bd07f-f9ab-13e6-b830-0cc97a12a4ce
+     * @var string SalesMango contactId E.g.: d51bd07f-f9ab-13e6-b830-0cc97a12a4ce
      */
     public $id;
 
@@ -63,7 +63,7 @@ class Contact implements \ArrayAccess
                 $property = 'contactId';
             }
             if (!is_null($value)) {
-                $t[$property] = $value;
+                $t['contact'][$property] = $value;
             }
         }
 
