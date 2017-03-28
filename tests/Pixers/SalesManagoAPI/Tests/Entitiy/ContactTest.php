@@ -21,14 +21,14 @@ class ContactTest extends TestCase
     public function testInstance()
     {
         $c = new Contact($this->data['email'], $this->data['contactId']);
-        $this->assertEquals($this->data, $c->getInRequestFormat());
+        $this->assertEquals(['contact' => $this->data], $c->getInRequestFormat());
 
-        $data = ['email' => $this->data['email']];
+        $data['contact'] = ['email' => $this->data['email']];
 
         $c = new Contact($this->data['email']);
         $this->assertEquals($data, $c->getInRequestFormat());
 
-        $data = ['contactId' => $this->data['contactId']];
+        $data['contact'] = ['contactId' => $this->data['contactId']];
         $c = new Contact(null, $this->data['contactId']);
         $this->assertEquals($data, $c->getInRequestFormat());
     }

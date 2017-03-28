@@ -124,14 +124,18 @@ class Client
         $url = $this->config['endpoint'] . $apiMethod;
         $data = $this->mergeData($this->createAuthData(), $data);
 
-        $response = $this->getGuzzleClient()->request($method, $url, ['json' => $data]);
+        $response = $this->getGuzzleClient()->request($method, $url, ['json' => $data, 'debug' => true]);
+
         $responseContent = \GuzzleHttp\json_decode($response->getBody(), $this->responseInAssocArray);
 
-        if ($this->responseInAssocArray && (!isset($responseContent['success']) || !$responseContent['success']))
+        $is_array = is_array($responseContent);
+        $is_object = is_object($responseContent);
+
+        if (($this->responseInAssocArray && $is_array) && (!isset($responseContent['success']) || !$responseContent['success']))
         {
             throw new InvalidRequestException($method, $url, $data, $response);
         }
-        else
+        elseif ($is_object)
         {
             if (!property_exists($responseContent, 'success') || !$responseContent->success)
             {

@@ -43,7 +43,7 @@ class APIResponse
     public static function createFromRawResponse($data, array $requiredPayloadFields = [])
     {
 
-        if (!($data instanceof \stdClass) && is_array($data))
+        if (!($data instanceof \stdClass) && !is_array($data))
         {
             throw new InvalidResponseException("The given response data cannot be interpreted as valid SalesManago API response.");
         }

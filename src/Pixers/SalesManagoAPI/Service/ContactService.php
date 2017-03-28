@@ -82,16 +82,19 @@ class ContactService extends OwnerRequiredAbstractService
     }
 
     /**
-     * Runs a batch upsert command on the given list of contacts
+     * Runs a batch upsert command on the given list of contacts. If the $contacts array indexed by e-mail address,
+     * the response data (contactId-s) is going to be applied on the &$contacts array.
      *
-     * @param Contact[] $contacts Array of Contacts or DetailedContact. should be $contacts[$contact->email] = $contact if you want to use the return values.
+     * @param Contact[] $contacts Array of Contacts or DetailedContact. should be $contacts[$contact->email] = $contact
+     *                            if you want to use the return values.
      *
      * @throws InvalidArgumentException
      * @throws InvalidResponseException
      *
      * @see Contact
      * @see DetailedContact
-     * @return array contactIds in associative array format -> ['email' => 'contactId']
+     *
+     * @return array contactIds in associative array format -> ['email' => Contact ]
      */
     public function batchUpsert(array &$contacts)
     {
