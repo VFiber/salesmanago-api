@@ -348,6 +348,6 @@ class ContactService extends OwnerRequiredAbstractService
      */
     private function formatDateTime(\DateTime $dt)
     {
-        return $dt->format('U') * 1000;
+        return $dt->format('U.u') * 1000;
     }
 }

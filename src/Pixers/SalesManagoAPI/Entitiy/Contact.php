@@ -11,7 +11,7 @@ namespace Pixers\SalesManagoAPI\Entitiy;
 /*
  * Simple contact representation for simpler contact related SalesManago requests
  */
-class Contact implements \ArrayAccess
+class Contact implements ConvertableEntityInterface
 {
 
     public function __construct($email = null, $contactId = null)
@@ -42,14 +42,16 @@ class Contact implements \ArrayAccess
 
     public function offsetSet($offset, $value)
     {
-        if (!property_exists($this, $offset)) {
+        if (!property_exists($this, $offset))
+        {
             throw new \InvalidArgumentException("Unknown contact property: '" . $offset . "' in " . __CLASS__);
         }
     }
 
     public function offsetUnset($offset)
     {
-        if (property_exists($this, $offset)) {
+        if (property_exists($this, $offset))
+        {
             unset($this->{$offset});
         }
     }
@@ -57,12 +59,15 @@ class Contact implements \ArrayAccess
     public function getInRequestFormat()
     {
         $t = [];
-        foreach ($this as $property => $value) {
-            if ($property == 'id') {
+        foreach ($this as $property => $value)
+        {
+            if ($property == 'id')
+            {
                 //i feel sorry for this fast hack
                 $property = 'contactId';
             }
-            if (!is_null($value)) {
+            if (!is_null($value))
+            {
                 $t['contact'][$property] = $value;
             }
         }

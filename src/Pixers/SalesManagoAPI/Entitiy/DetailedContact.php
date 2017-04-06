@@ -20,7 +20,7 @@ use Pixers\SalesManagoAPI\Exception\InvalidArgumentException;
  *
  * @package Pixers\SalesManagoAPI\Entitiy
  */
-class DetailedContact extends Contact implements \ArrayAccess
+class DetailedContact extends Contact implements ConvertableEntityInterface
 {
     /**
      * @var array
@@ -263,7 +263,7 @@ class DetailedContact extends Contact implements \ArrayAccess
     /**
      * @param array $responseContactFormat
      */
-    public static function createFromResponse(\stdClass $responseContact)
+    public static function createFromResponse($responseContact)
     {
         $t = new DetailedContact();
 
