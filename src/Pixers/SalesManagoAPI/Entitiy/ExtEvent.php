@@ -27,7 +27,7 @@ class ExtEvent implements ConvertableEntityInterface
 
     const REQUEST_CREATE = 0;
     const REQUEST_UPDATE = 1;
-    const REQUEST_DELETE = 1;
+    const REQUEST_DELETE = 2;
 
     /**
      * @var \DateTime
@@ -412,10 +412,7 @@ class ExtEvent implements ConvertableEntityInterface
             $response['contactEvent']['eventId'] = $this->id;
         }
 
-        if (!$requestType)
-        {
-            $response['contactEvent']['date'] = $this->formatDateTime($this->date);
-        }
+        $response['contactEvent']['date'] = $this->formatDateTime($this->date);
 
         if (!empty($this->description))
         {
