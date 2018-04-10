@@ -5,6 +5,7 @@ namespace Pixers\SalesManagoAPI;
 use GuzzleHttp\Client as GuzzleClient;
 use Pixers\SalesManagoAPI\Exception\InvalidRequestException;
 use Pixers\SalesManagoAPI\Exception\InvalidArgumentException;
+use Pixers\SalesManagoAPI\Exception\InvalidResponseException;
 
 /**
  * SalesManago API implementation.
@@ -131,16 +132,30 @@ class Client
         $is_array = is_array($responseContent);
         $is_object = is_object($responseContent);
 
-        if (($this->responseInAssocArray && $is_array) && (!isset($responseContent['success']) || !$responseContent['success']))
+        if ($response->getStatusCode() != 200)
         {
-            throw new InvalidRequestException($method, $url, $data, $response);
+            throw new InvalidResponseException("HTTP Response code was not 200 in response to: " . $url, $data, $response);
         }
-        elseif ($is_object)
+
+        $emptyResponseMethods = [
+            //delete does not give a decent JSON response, only an HTTP 200
+            'contact/delete'
+        ];
+
+        if (!in_array($apiMethod, $emptyResponseMethods))
         {
-            if (!property_exists($responseContent, 'success') || !$responseContent->success)
+            if (($this->responseInAssocArray && $is_array) && (!isset($responseContent['success']) || !$responseContent['success']))
             {
                 throw new InvalidRequestException($method, $url, $data, $response);
             }
+            elseif ($is_object)
+            {
+                if (!property_exists($responseContent, 'success') || !$responseContent->success)
+                {
+                    throw new InvalidRequestException($method, $url, $data, $response);
+                }
+            }
+
         }
 
         return $responseContent;
@@ -171,8 +186,7 @@ class Client
      */
     private function mergeData(array $base, array $replacements)
     {
-        return array_filter(array_merge($base, $replacements), function ($value)
-        {
+        return array_filter(array_merge($base, $replacements), function ($value) {
             return $value !== null;
         });
     }

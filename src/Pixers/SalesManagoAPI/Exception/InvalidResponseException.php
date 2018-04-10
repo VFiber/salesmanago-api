@@ -8,7 +8,7 @@
 
 namespace Pixers\SalesManagoAPI\Exception;
 
-use Exception;
+use Psr\Http\Message\ResponseInterface;
 
 /**
  *  If the response cannot be interpreted as SalesManago API response (e.g.: communication error, network error, etc)
@@ -19,8 +19,19 @@ use Exception;
  */
 class InvalidResponseException extends SalesManagoAPIException
 {
-    public function __construct($message = "", $code = 0, Exception $previous = null)
+    /**
+     * @var array|null
+     */
+    public $request = [];
+    /**
+     * @var ResponseInterface
+     */
+    public $response = null;
+
+    public function __construct($message = "", array $requestData = [], ResponseInterface $response = null)
     {
-        parent::__construct($message, $code, $previous);
+        parent::__construct($message);
+        $this->request = $requestData;
+        $this->response = $response;
     }
 }
