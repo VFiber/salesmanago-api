@@ -84,7 +84,7 @@ abstract class AbstractServiceTest extends TestCase
             'tags' => ['TAG_1', 'TAG_2', 'TAG_3']
         ];
 
-        return self::$contactService->create(self::$config['owner'], $data);
+        return self::$contactService->create($data);
     }
 
     /**

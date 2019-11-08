@@ -5,7 +5,7 @@ namespace Pixers\SalesManagoAPI\Service;
 /**
  * @author Sylwester Łuczak <sylwester.luczak@pixers.pl>
  */
-class CouponService extends AbstractService
+class CouponService extends OwnerRequiredAbstractService
 {
     /**
      * Adding a new coupon to contact.
@@ -14,10 +14,10 @@ class CouponService extends AbstractService
      * @param  string $email Contact e-mail address
      * @param  array  $data  Client data
      */
-    public function create($owner, $email, array $data)
+    public function create($email, array $data)
     {
         $data = self::mergeData($data, [
-            'owner' => $owner,
+            'owner' => $this->getOwner(),
             'email' => $email,
         ]);
 

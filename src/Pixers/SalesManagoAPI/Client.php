@@ -5,6 +5,7 @@ namespace Pixers\SalesManagoAPI;
 use GuzzleHttp\Client as GuzzleClient;
 use Pixers\SalesManagoAPI\Exception\InvalidRequestException;
 use Pixers\SalesManagoAPI\Exception\InvalidArgumentException;
+use Pixers\SalesManagoAPI\Exception\InvalidResponseException;
 
 /**
  * SalesManago API implementation.
@@ -28,6 +29,11 @@ class Client
     protected $guzzleClient;
 
     /**
+     * @var bool Get response as stdobject or assoc array
+     */
+    protected $responseInAssocArray = false;
+
+    /**
      * Initialization.
      */
     public function __construct($clientId, $endPoint, $apiSecret, $apiKey)
@@ -39,8 +45,10 @@ class Client
             'api_key' => $apiKey
         ];
 
-        foreach ($this->config as $key => $parameter) {
-            if (empty($parameter)) {
+        foreach ($this->config as $key => $parameter)
+        {
+            if (empty($parameter))
+            {
                 throw new InvalidArgumentException($key . ' parameter is required', $parameter);
             }
         }
@@ -63,7 +71,8 @@ class Client
      */
     public function getGuzzleClient()
     {
-        if (!$this->guzzleClient) {
+        if (!$this->guzzleClient)
+        {
             $this->guzzleClient = new GuzzleClient();
         }
 
@@ -75,7 +84,10 @@ class Client
      *
      * @param  string $method API Method
      * @param  array  $data   Request data
-     * @return array
+     *
+     * @return \stdClass|array
+     *
+     * @see Client::setResponseInAssocArray()
      */
     public function doPost($method, array $data)
     {
@@ -87,7 +99,10 @@ class Client
      *
      * @param  string $method API Method
      * @param  array  $data   Request data
-     * @return array
+     *
+     * @return \stdClass|array
+     *
+     * @see Client::setResponseInAssocArray()
      */
     public function doGet($method, array $data)
     {
@@ -100,18 +115,47 @@ class Client
      * @param  string $method    HTTP Method
      * @param  string $apiMethod API Method
      * @param  array  $data      Request data
-     * @return array
+     *
+     * @return \stdClass|array
+     *
+     * @see Client::setResponseInAssocArray()
      */
     protected function doRequest($method, $apiMethod, array $data = [])
     {
         $url = $this->config['endpoint'] . $apiMethod;
         $data = $this->mergeData($this->createAuthData(), $data);
 
-        $response = $this->getGuzzleClient()->request($method, $url, ['json' => $data]);
-        $responseContent = \GuzzleHttp\json_decode($response->getBody());
+        $response = $this->getGuzzleClient()->request($method, $url, ['json' => $data, 'debug' => true]);
 
-        if (!property_exists($responseContent, 'success') || !$responseContent->success) {
-            throw new InvalidRequestException($method, $url, $data, $response);
+        $responseContent = \GuzzleHttp\json_decode($response->getBody(), $this->responseInAssocArray);
+
+        $is_array = is_array($responseContent);
+        $is_object = is_object($responseContent);
+
+        if ($response->getStatusCode() != 200)
+        {
+            throw new InvalidResponseException("HTTP Response code was not 200 in response to: " . $url, $data, $response);
+        }
+
+        $emptyResponseMethods = [
+            //delete does not give a decent JSON response, only an HTTP 200
+            'contact/delete'
+        ];
+
+        if (!in_array($apiMethod, $emptyResponseMethods))
+        {
+            if (($this->responseInAssocArray && $is_array) && (!isset($responseContent['success']) || !$responseContent['success']))
+            {
+                throw new InvalidRequestException($method, $url, $data, $response);
+            }
+            elseif ($is_object)
+            {
+                if (!property_exists($responseContent, 'success') || !$responseContent->success)
+                {
+                    throw new InvalidRequestException($method, $url, $data, $response);
+                }
+            }
+
         }
 
         return $responseContent;
@@ -137,12 +181,29 @@ class Client
      *
      * @param  array $base         The array in which elements are replaced
      * @param  array $replacements The array from which elements will be extracted
+     *
      * @return array
      */
     private function mergeData(array $base, array $replacements)
     {
-        return array_filter(array_merge($base, $replacements), function($value) {
+        return array_filter(array_merge($base, $replacements), function ($value) {
             return $value !== null;
         });
+    }
+
+    /**
+     * @return bool
+     */
+    public function isResponseInAssocArray()
+    {
+        return $this->responseInAssocArray;
+    }
+
+    /**
+     * @param bool $responseInAssocArray
+     */
+    public function setResponseInAssocArray($responseInAssocArray)
+    {
+        $this->responseInAssocArray = $responseInAssocArray;
     }
 }
